@@ -2,18 +2,53 @@ package nl.hannahsten.texifyidea.psi
 
 import com.intellij.lang.PsiBuilder
 import com.intellij.lang.parser.GeneratedParserUtilBase
+import com.intellij.openapi.util.Key
+import nl.hannahsten.texifyidea.psi.LatexTypes.COMMAND_TOKEN
+import nl.hannahsten.texifyidea.psi.LatexTypes.NORMAL_TEXT_WORD
 import nl.hannahsten.texifyidea.util.magic.EnvironmentMagic
 
 @Suppress("FunctionName")
 class LatexParserUtil : GeneratedParserUtilBase() {
 
     companion object {
+        private val lastCommandKey: Key<String> = Key.create("LAST_COMMAND")
+        private val inBeginCommand: Key<Boolean> = Key.create("IN_BEGIN_COMMAND")
+        private val keyValCommands = setOf("lstlisting", "lstinputlisting", "enumerate*", "enumerate")
+
+        @JvmStatic
+        fun inBeginCommand(builder: PsiBuilder, level: Int): Boolean {
+            builder.putUserData(inBeginCommand, true)
+            return true;
+        }
+
+        @JvmStatic
+        fun clearBeginCommand(builder: PsiBuilder, level: Int): Boolean {
+            builder.putUserData(inBeginCommand, false)
+            return true;
+        }
+
+
+        @JvmStatic
+        fun rememberCommand(builder: PsiBuilder, level: Int): Boolean {
+            if (builder.tokenType === COMMAND_TOKEN ||
+                (builder.getUserData(inBeginCommand) == true && builder.tokenType == NORMAL_TEXT_WORD)
+            ) {
+                builder.putUserData(lastCommandKey, builder.tokenText!!.replace("\\", ""))
+            }
+            return true
+        }
+
+        @JvmStatic
+        fun isKeyValCommand(builder: PsiBuilder, level: Int): Boolean {
+            return keyValCommands.contains(builder.getUserData(lastCommandKey))
+        }
 
         /**
          * Remap tokens inside verbatim environments to raw text.
          * Requires the lexer to be in a proper state before and after the environment.
          */
-        @JvmStatic fun injection_env_content(builder: PsiBuilder, level: Int, rawText: Parser): Boolean {
+        @JvmStatic
+        fun injection_env_content(builder: PsiBuilder, level: Int, rawText: Parser): Boolean {
             // This might be optimized by handling the tokens incrementally
             val beginText = builder.originalText.subSequence(
                 builder.latestDoneMarker?.startOffset ?: return true,
