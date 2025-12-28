@@ -120,7 +120,9 @@ abstract class IndexUtilBase<T : PsiElement>(
         if (useCache) {
             cache[project]?.get(scope)?.let { return it.mapNotNull { pointer -> pointer.element } }
         }
-        val result = getKeys(project).flatMap { getItemsByName(it, project, scope) }
+        // Collect all keys first to avoid nested stub index operations which can cause deadlocks
+        val keys = getKeys(project)
+        val result = keys.flatMap { getItemsByName(it, project, scope) }
         cache.getOrPut(project) { mutableMapOf() }[scope] = result.map { it.createSmartPointer() }
         return result
     }
