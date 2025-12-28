@@ -76,4 +76,19 @@ class GrazieInspectionTest : BasePlatformTestCase() {
         )
         myFixture.checkHighlighting()
     }
+
+    fun testCommentEnvironment() {
+        myFixture.configureByText(LatexFileType, """
+            \documentclass{article}
+            \usepackage{comment}
+            \begin{document}
+                \begin{comment}
+                This is a tests and it have grammars mistake
+                \end{comment}
+                <warning descr="The verb 'is' is singular. Did you mean: This is or these are?">This is a tests</warning> and it <warning descr="Did you mean have a grammar mistake or has grammar mistakes?">have grammars mistake</warning>.
+            \end{document}
+            """.trimIndent()
+        )
+        myFixture.checkHighlighting()
+    }
 }

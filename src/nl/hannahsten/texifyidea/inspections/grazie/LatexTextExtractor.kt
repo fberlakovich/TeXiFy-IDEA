@@ -44,7 +44,7 @@ class LatexTextExtractor : TextExtractor() {
         // Only keep normaltext, assuming other things (like inline math) need to be ignored.
         val ranges = root.childrenOfType(LatexNormalText::class)
             .asSequence()
-            .filter { it.isNotInMathEnvironment() && it.isNotInSquareBrackets() }
+            .filter { it.isNotInMathEnvironment() && it.isNotInSquareBrackets() && it.isNotInCommentEnvironment() }
             // Ranges that we need to keep
             // Note that textRangeInParent will not be correct because that's the text range in the direct parent, not in the root
             .flatMap {
@@ -87,4 +87,6 @@ class LatexTextExtractor : TextExtractor() {
 
     private fun PsiElement.isNotInSquareBrackets() = parents().find { it is LatexGroup || it is LatexOptionalParam }
         ?.let { it is LatexGroup } ?: true
+
+    private fun PsiElement.isNotInCommentEnvironment() = !inDirectEnvironmentContext(nl.hannahsten.texifyidea.lang.Environment.Context.COMMENT)
 }
