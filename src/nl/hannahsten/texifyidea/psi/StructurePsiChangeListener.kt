@@ -1,17 +1,31 @@
 package nl.hannahsten.texifyidea.psi
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiTreeChangeEvent
 import com.intellij.psi.PsiTreeChangeListener
+import com.intellij.util.Alarm
 
 /**
  * @author Hannah Schellekens
  */
 class StructurePsiChangeListener(val project: Project) : PsiTreeChangeListener {
 
+    // Use alarm to debounce cache updates and avoid UI freezes
+    private val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD, project)
+    private val DEBOUNCE_DELAY_MS = 500
+
     private fun updateTracker() {
-        PsiManager.getInstance(project).dropPsiCaches()
+        // Cancel any pending cache drops and schedule a new one
+        alarm.cancelAllRequests()
+        alarm.addRequest({
+            ApplicationManager.getApplication().runReadAction {
+                if (!project.isDisposed) {
+                    PsiManager.getInstance(project).dropPsiCaches()
+                }
+            }
+        }, DEBOUNCE_DELAY_MS)
     }
 
     override fun beforeChildAddition(psiTreeChangeEvent: PsiTreeChangeEvent) {
