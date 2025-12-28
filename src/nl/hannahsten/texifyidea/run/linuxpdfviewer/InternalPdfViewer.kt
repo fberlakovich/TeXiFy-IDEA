@@ -20,15 +20,19 @@ import nl.hannahsten.texifyidea.util.runCommand
 enum class InternalPdfViewer(
     private val viewerCommand: String,
     override val displayName: String,
-    val conversation: ViewerConversation?
+    private val conversationFactory: (() -> ViewerConversation)?
 ) : PdfViewer {
 
-    EVINCE("evince", "Evince", EvinceConversation),
-    OKULAR("okular", "Okular", OkularConversation),
-    ZATHURA("zathura", "Zathura", ZathuraConversation),
-    SKIM("skim", "Skim", SkimConversation),
-    SUMATRA("sumatra", "Sumatra", SumatraConversation()),
+    EVINCE("evince", "Evince", { EvinceConversation }),
+    OKULAR("okular", "Okular", { OkularConversation }),
+    ZATHURA("zathura", "Zathura", { ZathuraConversation }),
+    SKIM("skim", "Skim", { SkimConversation }),
+    SUMATRA("sumatra", "Sumatra", { SumatraConversation() }),
     NONE("", "No PDF viewer", null);
+
+    val conversation: ViewerConversation? by lazy {
+        conversationFactory?.invoke()
+    }
 
     override fun isAvailable(): Boolean = availability[this] ?: false
 
